@@ -468,23 +468,25 @@ footer{
   <div class="err" id="agencyErr">❌ No agency found with that code. Please check and try again.</div>
   <div class="results" id="agencyResults"></div>
 
-  <!-- HOST SEARCH within Agency -->
-  <div class="divider" style="margin-top:36px">
-    <div class="div-line"></div>
-    <div class="div-lbl">🎙️ Search Host by ID</div>
-    <div class="div-line"></div>
-  </div>
-  <div class="search-card">
-    <div class="s-row">
-      <div class="igrp">
-        <label>Host ID / Username</label>
-        <input class="idinput" id="agencyHostInput" type="text" placeholder="e.g. 2222 or 800194898" autocomplete="off" onkeydown="if(event.key==='Enter')lookupAgencyHost()"/>
-      </div>
-      <button class="sbtn hbtn" onclick="lookupAgencyHost()">🔍 Find Host</button>
+  <!-- HOST SEARCH within Agency — hidden until agency is found -->
+  <div id="agencyHostSection" style="display:none">
+    <div class="divider" style="margin-top:36px">
+      <div class="div-line"></div>
+      <div class="div-lbl">🎙️ Search Host by ID</div>
+      <div class="div-line"></div>
     </div>
+    <div class="search-card">
+      <div class="s-row">
+        <div class="igrp">
+          <label>Host ID / Username</label>
+          <input class="idinput" id="agencyHostInput" type="text" placeholder="e.g. 2222 or 800194898" autocomplete="off" onkeydown="if(event.key==='Enter')lookupAgencyHost()"/>
+        </div>
+        <button class="sbtn hbtn" onclick="lookupAgencyHost()">🔍 Find Host</button>
+      </div>
+    </div>
+    <div class="err" id="agencyHostErr">❌ No host found with that ID. Please check and try again.</div>
+    <div class="results" id="agencyHostResults"></div>
   </div>
-  <div class="err" id="agencyHostErr">❌ No host found with that ID. Please check and try again.</div>
-  <div class="results" id="agencyHostResults"></div>
 </div>
 
 <footer>
@@ -520,7 +522,7 @@ const D = window.DASHBOARD_DATA;
 
 /* ── FORMATTERS ── */
 function fmtN(n){
-  return Number(n).toLocaleString('en-IN',{maximumFractionDigits:0});
+  return String(Math.round(Number(n)||0));
 }
 function fmtMins(m){
   m = Math.round(Number(m)||0);
@@ -544,6 +546,9 @@ function openPanel(type){
   ['hostBtn','agencyBtn'].forEach(b=>document.getElementById(b).classList.remove('active'));
   ['hostResults','agencyResults','agencyHostResults'].forEach(r=>{const el=document.getElementById(r);if(el)el.innerHTML='';});
   ['hostErr','agencyErr','agencyHostErr'].forEach(e=>{const el=document.getElementById(e);if(el)el.style.display='none';});
+  const hs = document.getElementById('agencyHostSection');
+  if(hs){ hs.style.display='none'; }
+  if(document.getElementById('agencyHostInput')) document.getElementById('agencyHostInput').value='';
   document.getElementById(type+'Panel').classList.add('open');
   document.getElementById(type+'Btn').classList.add('active');
   setTimeout(()=>document.getElementById(type+'Input').focus(),400);
@@ -677,6 +682,10 @@ function lookupAgency(){
 
   if(!moAg && !weAg){
     errEl.style.display='flex';
+    document.getElementById('agencyHostSection').style.display='none';
+    document.getElementById('agencyHostResults').innerHTML='';
+    document.getElementById('agencyHostErr').style.display='none';
+    if(document.getElementById('agencyHostInput')) document.getElementById('agencyHostInput').value='';
     return;
   }
 
@@ -743,6 +752,14 @@ function lookupAgency(){
         : '<div class="nodata"><big>🎙️</big>No weekly hosts found.</div>'}
     </div>
   </div>`;
+
+  // Reveal host search section now that agency is loaded
+  const hostSection = document.getElementById('agencyHostSection');
+  hostSection.style.display = '';
+  hostSection.style.animation = 'panelIn .45s cubic-bezier(.22,1,.36,1)';
+  document.getElementById('agencyHostResults').innerHTML = '';
+  document.getElementById('agencyHostErr').style.display = 'none';
+  document.getElementById('agencyHostInput').value = '';
 }
 
 /* ────────────────────────────────────────────────────
