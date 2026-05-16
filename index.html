@@ -751,7 +751,8 @@ function sc(type, icon, label, value, sub){
   </div>`;
 }
 
-// Host row for agency roster — shows display ID (hostName) prominently
+// ── HOST ROW for agency roster ──
+// Shows: Rubies · Live Hours · Valid Days
 function hrow(h){
   return `<div class="hrow">
     <div class="hrow-av">${initials(h.hostName)}</div>
@@ -761,6 +762,7 @@ function hrow(h){
     </div>
     <div class="hrow-stats">
       <div><div class="hs-v rose">${fmtN(h.rubies)}</div><div class="hs-l">💎 Rubies</div></div>
+      <div><div class="hs-v teal">${fmtMins(h.activeMins)}</div><div class="hs-l">⏱️ Hours</div></div>
       <div><div class="hs-v gold">${h.activeDays}d</div><div class="hs-l">✅ Days</div></div>
     </div>
   </div>`;
