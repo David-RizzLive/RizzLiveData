@@ -467,6 +467,24 @@ footer{
   </div>
   <div class="err" id="agencyErr">❌ No agency found with that code. Please check and try again.</div>
   <div class="results" id="agencyResults"></div>
+
+  <!-- HOST SEARCH within Agency -->
+  <div class="divider" style="margin-top:36px">
+    <div class="div-line"></div>
+    <div class="div-lbl">🎙️ Search Host by ID</div>
+    <div class="div-line"></div>
+  </div>
+  <div class="search-card">
+    <div class="s-row">
+      <div class="igrp">
+        <label>Host ID / Username</label>
+        <input class="idinput" id="agencyHostInput" type="text" placeholder="e.g. 2222 or 800194898" autocomplete="off" onkeydown="if(event.key==='Enter')lookupAgencyHost()"/>
+      </div>
+      <button class="sbtn hbtn" onclick="lookupAgencyHost()">🔍 Find Host</button>
+    </div>
+  </div>
+  <div class="err" id="agencyHostErr">❌ No host found with that ID. Please check and try again.</div>
+  <div class="results" id="agencyHostResults"></div>
 </div>
 
 <footer>
@@ -524,8 +542,8 @@ function initials(name){
 function openPanel(type){
   ['hostPanel','agencyPanel'].forEach(p=>document.getElementById(p).classList.remove('open'));
   ['hostBtn','agencyBtn'].forEach(b=>document.getElementById(b).classList.remove('active'));
-  ['hostResults','agencyResults'].forEach(r=>document.getElementById(r).innerHTML='');
-  ['hostErr','agencyErr'].forEach(e=>document.getElementById(e).style.display='none');
+  ['hostResults','agencyResults','agencyHostResults'].forEach(r=>{const el=document.getElementById(r);if(el)el.innerHTML='';});
+  ['hostErr','agencyErr','agencyHostErr'].forEach(e=>{const el=document.getElementById(e);if(el)el.style.display='none';});
   document.getElementById(type+'Panel').classList.add('open');
   document.getElementById(type+'Btn').classList.add('active');
   setTimeout(()=>document.getElementById(type+'Input').focus(),400);
@@ -727,11 +745,79 @@ function lookupAgency(){
   </div>`;
 }
 
+/* ────────────────────────────────────────────────────
+   AGENCY HOST SEARCH
+   Search a host by hostName (display ID) across all periods.
+   Shows full stats: monthly + weekly + daily tabs.
+──────────────────────────────────────────────────── */
+function lookupAgencyHost(){
+  const query  = document.getElementById('agencyHostInput').value.trim();
+  const errEl  = document.getElementById('agencyHostErr');
+  const res    = document.getElementById('agencyHostResults');
+  errEl.style.display='none';
+  res.innerHTML='';
+
+  if(!query){
+    errEl.textContent='❌ Please enter a Host ID or Username.';
+    errEl.style.display='flex';
+    return;
+  }
+
+  const q = query.toLowerCase();
+
+  const mo = (D.monthly||[]).find(h=>String(h.hostName).trim().toLowerCase()===q);
+  const we = (D.weekly||[]).find(h=>String(h.hostName).trim().toLowerCase()===q);
+  const da = (D.daily||[]).find(h=>String(h.hostName).trim().toLowerCase()===q);
+
+  if(!mo && !we && !da){
+    errEl.style.display='flex';
+    return;
+  }
+
+  const base = mo || we || da;
+  const meta = D.meta || {};
+  const wFrom = (meta.weeklyPeriod&&meta.weeklyPeriod.from)||'';
+  const wTo   = (meta.weeklyPeriod&&meta.weeklyPeriod.to)||'';
+  const mFrom = (meta.monthlyPeriod&&meta.monthlyPeriod.from)||'';
+  const mTo   = (meta.monthlyPeriod&&meta.monthlyPeriod.to)||'';
+  const wPeriod = (wFrom&&wTo)?`${wFrom} – ${wTo}`:'This Week';
+  const dDate   = meta.dailyDate||'Today';
+
+  res.innerHTML = `
+  <div class="prow" style="margin-top:20px">
+    <div class="av hav">${initials(base.hostName)}</div>
+    <div class="pinfo">
+      <h2>${base.hostName}</h2>
+      <p>Display ID: <code>${base.hostName}</code> &nbsp;·&nbsp; ${base.agencyName||'—'}</p>
+    </div>
+    <div class="pbadge live">Active</div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab(this,'ah-mo')">📅 Monthly</button>
+    <button class="tab" onclick="switchTab(this,'ah-we')">📊 Weekly</button>
+    <button class="tab" onclick="switchTab(this,'ah-da')">📆 Daily</button>
+  </div>
+  <div id="ah-mo">
+    ${mo ? hostStatSection('mo','📅','Monthly Performance', mFrom&&mTo?mFrom+' – '+mTo:'This Month', mo)
+         : '<div class="nodata"><big>📅</big>No monthly data for this host.</div>'}
+  </div>
+  <div id="ah-we" style="display:none">
+    ${we ? hostStatSection('we','📊','Weekly Performance', wPeriod, we)
+         : '<div class="nodata"><big>📊</big>No weekly data for this host.</div>'}
+  </div>
+  <div id="ah-da" style="display:none">
+    ${da ? hostStatSection('da','📆','Daily Performance', dDate, da)
+         : '<div class="nodata"><big>📆</big>No daily data for this host.</div>'}
+  </div>`;
+
+  res.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 /* ── TABS ── */
 function switchTab(btn, targetId){
   btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  const siblings = ['ht-mo','ht-we','ht-da','at-mo','at-we'];
+  const siblings = ['ht-mo','ht-we','ht-da','at-mo','at-we','ah-mo','ah-we','ah-da'];
   siblings.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
   const t = document.getElementById(targetId);
   if(t){
