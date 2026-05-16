@@ -520,6 +520,10 @@ footer{
 // window.DASHBOARD_DATA is set by data.js
 const D = window.DASHBOARD_DATA;
 
+// Holds the currently loaded agency's host lists
+let _agencyMoHosts = [];
+let _agencyWeHosts = [];
+
 /* ── FORMATTERS ── */
 function fmtN(n){
   return String(Math.round(Number(n)||0));
@@ -710,6 +714,10 @@ function lookupAgency(){
   // Aggregate: only rubies + host count for agency view
   const moRevenue = moHosts.reduce((s,h)=>s+Number(h.rubies||0),0);
   const weRevenue = weHosts.reduce((s,h)=>s+Number(h.rubies||0),0);
+
+  // Store for scoped host search
+  _agencyMoHosts = moHosts;
+  _agencyWeHosts = weHosts;
 
   res.innerHTML = `
   <div class="prow">
