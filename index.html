@@ -641,12 +641,10 @@ footer{text-align:center;padding:28px 0 0;color:var(--ink4);font-size:11px;borde
 
 <script>
 /* ══════════════════════════════════════
-   CONFIG — apna Google Sheet Apps Script URL yahan daalo
-   Sheet structure: Column A=ID, B=Password, C=Name, D=Role
+   ✅ FIX: Correct Apps Script URL
+   Sirf URL yahan rakho — koi extra text nahi
 ══════════════════════════════════════ */
-const USERS_SHEET_URL = ':https://docs.google.com/spreadsheets/d/1b2fNrlhi13d_izR15BKJj51vue5UcYkNtSFxDflrDJ4/edit?gid=0#gid=0 
-
-le';
+const USERS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbzY8sAqKBJhkDPHl1cdmEp10AH2OM_B4P1tQP6fxPsaITNGTocCprfyBtgalHTZbw7vRw/exec';
 
 /* ══════════════════════════════════════
    LOGIN SYSTEM
@@ -684,9 +682,18 @@ async function doLogin(){
 
   try {
     const users = await fetchUsers();
+
+    if(!Array.isArray(users) || users.length === 0){
+      errEl.textContent = '⚠️ User list is empty or could not be loaded.';
+      errEl.style.display = 'flex';
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      return;
+    }
+
     const match = users.find(u =>
-      String(u.id).trim().toLowerCase()   === userId.toLowerCase() &&
-      String(u.password).trim()           === password
+      String(u.id).trim().toLowerCase() === userId.toLowerCase() &&
+      String(u.password).trim()         === password
     );
 
     if(!match){
@@ -698,7 +705,8 @@ async function doLogin(){
       showApp();
     }
   } catch(e) {
-    errEl.textContent = '⚠️ Could not connect. Check your internet and try again.';
+    console.error('Login error:', e);
+    errEl.textContent = '⚠️ Could not connect to server. Check your internet and try again.';
     errEl.style.display = 'flex';
   }
 
@@ -706,18 +714,41 @@ async function doLogin(){
   btn.disabled = false;
 }
 
+/* ══════════════════════════════════════
+   ✅ FIX: fetchUsers — proper CORS fetch
+   Apps Script Web App needs no-cors workaround
+   BUT since it returns JSON we need cors mode
+   Make sure Apps Script is deployed as:
+     Execute as: Me
+     Who has access: Anyone (even anonymous)
+══════════════════════════════════════ */
 async function fetchUsers(){
-  const res = await fetch(USERS_SHEET_URL + '?action=getUsers');
+  const url = USERS_SHEET_URL + '?action=getUsers&t=' + Date.now();
+
+  const res = await fetch(url, {
+    method: 'GET',
+    mode: 'cors',
+    cache: 'no-cache',
+  });
+
+  if(!res.ok){
+    throw new Error('HTTP error: ' + res.status);
+  }
+
   const data = await res.json();
-  // Expected: [{id:'...', password:'...', name:'...', role:'...'}]
-  return data;
+
+  // If Apps Script returned an error object
+  if(data && data.error){
+    throw new Error(data.error);
+  }
+
+  return data; // Should be array of {id, password, name, role}
 }
 
 function showApp(){
   document.getElementById('loginPage').classList.add('hidden');
   document.getElementById('appPage').classList.add('visible');
 
-  // Set topbar user info
   const name = currentUser.name || currentUser.id;
   const role = currentUser.role || 'User';
   document.getElementById('tbName').textContent   = name;
@@ -727,7 +758,6 @@ function showApp(){
 
 function doLogout(){
   currentUser = null;
-  // Reset app state
   document.getElementById('appPage').classList.remove('visible');
   document.getElementById('loginPage').classList.remove('hidden');
   document.getElementById('loginId').value  = '';
@@ -735,7 +765,6 @@ function doLogout(){
   document.getElementById('loginPw').type   = 'password';
   document.getElementById('pwEye').textContent = '👁️';
   document.getElementById('loginErr').style.display = 'none';
-  // Reset panels
   ['hostResults','agencyResults','agencyHostResults'].forEach(id=>{
     const el = document.getElementById(id); if(el) el.innerHTML='';
   });
